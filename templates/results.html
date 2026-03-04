@@ -1,1 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ ticker }} &mdash; OM Stock Analyzer</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
 
+    <!-- Header -->
+    <div class="results-header">
+      <div>
+        <h1>{{ ticker }}</h1>
+        <p class="subtitle">{{ start }} &rarr; {{ end }} &nbsp;&bull;&nbsp; Horizon: {{ horizon }}d</p>
+      </div>
+      <a href="/" class="btn-back">&larr; New Analysis</a>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Last Close</span>
+        <span class="stat-value">${{ stats.last_close }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Period Return</span>
+        <span class="stat-value {% if stats.pct_change >= 0 %}positive{% else %}negative{% endif %}">
+          {{ stats.pct_change }}%
+        </span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Period High</span>
+        <span class="stat-value">${{ stats.high }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Period Low</span>
+        <span class="stat-value">${{ stats.low }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Ann. Volatility</span>
+        <span class="stat-value">{{ stats.volatility }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">RSI (14)</span>
+        <span class="stat-value {% if stats.rsi_last != 'N/A' and stats.rsi_last > 70 %}negative{% elif stats.rsi_last != 'N/A' and stats.rsi_last < 30 %}positive{% endif %}">
+          {{ stats.rsi_last }}
+        </span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Data Points</span>
+        <span class="stat-value">{{ stats.data_points }}</span>
+      </div>
+    </div>
+
+    <!-- Price Chart -->
+    <section class="card">
+      <h2>Price &amp; Technical Indicators</h2>
+      <img src="data:image/png;base64,{{ price_chart }}" style="width:100%;border-radius:8px;">
+    </section>
+
+    <!-- Forecast Table + Errors -->
+    <div class="two-col">
+      <section class="card">
+        <h2>Forecast Comparison</h2>
+        {{ tables[0] | safe }}
+      </section>
+
+      <section class="card">
+        <h2>Forecast Errors</h2>
+        <table class="table">
+          <thead>
+            <tr><th>Model</th><th>MAD</th><th>MSE</th><th>MAPE&nbsp;(%)</th></tr>
+          </thead>
+          <tbody>
+            {% for model, vals in errors.items() %}
+            <tr>
+              <td>{{ model }}</td>
+              <td>{{ vals.MAD }}</td>
+              <td>{{ vals.MSE }}</td>
+              <td>{{ vals.MAPE }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="note">Lower is better. MAPE = Mean Absolute Percentage Error.</p>
+      </section>
+    </div>
+
+    <!-- Monte Carlo -->
+    <section class="card">
+      <h2>Monte Carlo Scenarios ({{ horizon }}d horizon)</h2>
+      <img src="data:image/png;base64,{{ scenario_plot }}" style="width:100%;border-radius:8px;">
+      <p class="note">200 simulated paths using historical log-return statistics. Green = bull (+1&sigma;), Red = bear (&minus;1&sigma;).</p>
+    </section>
+
+    <!-- Anomaly Events -->
+    <section class="card">
+      <h2>Anomaly Events <span class="badge">{{ events|length }}</span></h2>
+      {% if events %}
+        <ul class="events-list">
+          {% for ev in events %}
+          <li class="event-{{ ev.direction }}">
+            <span class="ev-date">{{ ev.date }}</span>
+            <span class="ev-pct {% if ev.direction == 'surge' %}positive{% else %}negative{% endif %}">
+              {% if ev.direction == 'surge' %}+{% endif %}{{ ev.pct_change }}%
+            </span>
+            <span class="ev-text">{{ ev.explanation }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="note">No statistically significant anomaly events detected (z-threshold = 2.5).</p>
+      {% endif %}
+    </section>
+
+  </div>
+</body>
+</html>
